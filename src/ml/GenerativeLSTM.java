@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -18,33 +19,35 @@ import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
 
+import parser.ActivityRoleTuple;
 import parser.Parser;
-import util.Serializer;
+import reducer.ReducedLogContainer;
 
 /**
  * This class generates all necessary input file for machine learning
- * in the python program
+ * in the python program that can be found at https://github.com/AdaptiveBProcess/GenerativeLSTM.
+ * 
  * 
  * @author Martin Käppel
  *
  */
-public class PythonInput {
+public class GenerativeLSTM implements Approach {
 	
-	public PythonInput() {
+	public GenerativeLSTM() {
 		
 	}
 	
-	public void createInputFiles(XLog referenceLog, Set<ReducedLogContainer> logs, String path, boolean lifecycle) {
+	public void createInputFiles(XLog originalLog, Set<ReducedLogContainer> reducedLogs, String path, boolean lifecycle) {
 		Parser p = new Parser();
 		Set<String> activities = null;
 		if(lifecycle == true) {
-			activities = p.getActivitiesWithLifecycle(referenceLog);			
+			activities = p.getActivitiesWithLifecycle(originalLog);			
 		}
 		else {
-			activities = p.getActivities(referenceLog);
+			activities = p.getActivities(originalLog);
 		}
 		
-		Map<String, Set<String>> roles = p.extractRoles(referenceLog, lifecycle);
+		Map<String, Set<String>> roles = p.extractRoles(originalLog, lifecycle);
 		
 		// Create a map that returns the role to a given originator
 		Map<String, String> originatorRoleMap = new HashMap<String, String>();
@@ -60,21 +63,20 @@ public class PythonInput {
 		Map<String, Integer> roleIndex = createRoleIndex(roles.keySet(), "Start", "End");
 		
 		//Serialize files
-		Serializer serializer = new Serializer();
-		serializer.serializeActivityIndex(activityIndex, path);
-		serializer.serializeRoleIndex(roleIndex, path);
-		serializer.serializeActivityRoleTuple(p.getActivityRoleTuple(referenceLog, lifecycle), path, activityIndex, roleIndex);
+		serializeActivityIndex(activityIndex, path);
+		serializeRoleIndex(roleIndex, path);
+		serializeActivityRoleTuple(p.getActivityRoleTuple(originalLog, lifecycle), path, activityIndex, roleIndex);
 		
 		
 		//Transform reduced logs into csv format
-		for(ReducedLogContainer log : logs) {
+		for(ReducedLogContainer log : reducedLogs) {
 			Iterator<XTrace> logIterator = log.getLog().iterator();
 			
-			File pairFile = new File(path+"\\log_"+log.getTitle()+".csv");
+			File pairFile = new File(path+"\\inp_"+log.getTitle()+".csv");
 			if(pairFile.exists()) {
 				pairFile.delete();			
 			}
-			pairFile = new File(path+"\\log_"+log.getTitle()+".csv");
+			pairFile = new File(path+"\\inp_"+log.getTitle()+".csv");
 
 			try {
 				FileWriter fileWriter = new FileWriter(pairFile, true);
@@ -150,6 +152,88 @@ public class PythonInput {
 		roleIndex.put(endRole, index);
 		
 		return roleIndex;
+	}
+	
+	private void serializeActivityIndex(Map<String, Integer> activityIndex, String path) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Activity,Index");
+		sb.append("\n");
+		for(String s : activityIndex.keySet()) {
+			sb.append(s);
+			sb.append(",");
+			sb.append(activityIndex.get(s));
+			sb.append("\n");
+		}
+		
+		BufferedWriter writer = null;
+		File activityFile = new File(path+"\\inp_activities.csv");
+		try {
+			writer = new BufferedWriter(new FileWriter(activityFile));
+			writer.write(sb.toString());
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			try {
+				writer.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}		
+	}
+	
+	private void serializeRoleIndex(Map<String, Integer> roleIndex, String path) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Role,Index");
+		sb.append("\n");
+		for(String s : roleIndex.keySet()) {
+			sb.append(s);
+			sb.append(",");
+			sb.append(roleIndex.get(s));
+			sb.append("\n");
+		}
+		
+		BufferedWriter writer = null;
+		File roleFile = new File(path+"\\inp_roles.csv");
+		try {
+			writer = new BufferedWriter(new FileWriter(roleFile));
+			writer.write(sb.toString());
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			try {
+				writer.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}	
+		
+	}
+	
+	
+	private void serializeActivityRoleTuple(List<ActivityRoleTuple> pairs, String path, Map<String, Integer> activityIndex, Map<String, Integer> roleIndex) {
+		File pairFile = new File(path+"\\inp_pairs.csv");
+		if(pairFile.exists()) {
+			pairFile.delete();			
+		}
+		pairFile = new File(path+"\\inp_pairs.csv");
+
+		try {
+			FileWriter fileWriter = new FileWriter(pairFile, true);
+			BufferedWriter writer = new BufferedWriter(fileWriter);
+		    PrintWriter out = new PrintWriter(writer);
+		    out.print("Activity,Role\n");
+			for(ActivityRoleTuple t : pairs) {
+				out.print(activityIndex.get(t.getActivity())+","+roleIndex.get(t.getRole())+"\n");
+			}
+			out.close();
+		} 
+		catch(IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	

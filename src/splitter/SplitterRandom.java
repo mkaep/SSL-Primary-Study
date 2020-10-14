@@ -1,4 +1,4 @@
-package ml;
+package splitter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,9 +19,9 @@ import parser.Parser;
  * @author Martin Käppel
  *
  */
-public class Splitter {
+public class SplitterRandom implements Splitter {
 	
-	public Splitter() {
+	public SplitterRandom() {
 		
 	}
 	
@@ -57,12 +57,6 @@ public class Splitter {
 		}
 		
 		TestTrainObject trainTest = new TestTrainObject(trainingLog, testLog);
-		
-		return trainTest;
-	}
-	
-	public TestTrainObject splitEventLogByTime(XLog log, double testSize) {
-		TestTrainObject trainTest = new TestTrainObject(null, null);
 		
 		return trainTest;
 	}

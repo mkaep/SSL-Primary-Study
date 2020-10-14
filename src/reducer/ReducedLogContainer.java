@@ -1,4 +1,4 @@
-package ml;
+package reducer;
 
 import org.deckfour.xes.model.XLog;
 /**

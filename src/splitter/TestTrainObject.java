@@ -1,4 +1,4 @@
-package ml;
+package splitter;
 
 import org.deckfour.xes.model.XLog;
 /**
