@@ -1,9 +1,10 @@
 import org.deckfour.xes.model.XLog;
 
 import loader.Loader;
-import ml.Splitter;
-import ml.TestTrainObject;
 import parser.Parser;
+import splitter.Splitter;
+import splitter.SplitterRandom;
+import splitter.TestTrainObject;
 
 /**
  * Main class for splitting an event log into training and testdata
@@ -17,7 +18,7 @@ public class MainSplit {
 		XLog log = loader.getProcessLog("I:\\Lab\\Real_Life_Event_Logs\\Helpdesk\\Helpdesk.xes");
 		
 
-		Splitter splitter = new Splitter();
+		Splitter splitter = new SplitterRandom();
 		TestTrainObject o = splitter.splitEventLog(log, 0.3);
 		
 		Parser p = new Parser();
